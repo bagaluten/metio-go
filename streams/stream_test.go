@@ -17,6 +17,7 @@
 package streams_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/bagaluten/metio-go/client"
@@ -26,6 +27,7 @@ import (
 )
 
 func TestStreams(t *testing.T) {
+	ctx := context.Background()
 	client, err := client.NewClient(client.Config{Host: "localhost:4222", Prefix: nil})
 	require.NoError(t, err)
 
@@ -53,6 +55,6 @@ func TestStreams(t *testing.T) {
 		},
 	}
 
-	err = stream.Publish(events)
+	err = stream.Publish(ctx, events)
 	require.NoError(t, err)
 }

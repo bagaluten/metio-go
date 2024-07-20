@@ -17,6 +17,7 @@
 package client_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/bagaluten/metio-go/client"
@@ -25,7 +26,7 @@ import (
 )
 
 func TestSerialization(t *testing.T) {
-
+	ctx := context.Background()
 	client, err := client.NewClient(client.Config{Host: "localhost:4222", Prefix: nil})
 	require.NoError(t, err)
 
@@ -41,7 +42,7 @@ func TestSerialization(t *testing.T) {
 		Timestamp: types.TimeNow(),
 	}
 
-	err = client.Publish("subject", []types.Event{event})
+	err = client.Publish(ctx, "subject", []types.Event{event})
 	require.NoError(t, err)
 
 	client.Close()

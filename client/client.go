@@ -17,11 +17,13 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
 	"github.com/bagaluten/metio-go/types"
 	"github.com/nats-io/nats.go"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type Config struct {
@@ -29,6 +31,8 @@ type Config struct {
 	Host string
 	// The prefix that is applied to names that are used when publishing messages
 	Prefix *string
+
+	Tracer trace.Tracer
 }
 
 // Client is a low-level way to interact with a Metio compliant endpoint.
@@ -36,6 +40,9 @@ type Client struct {
 	client *nats.Conn
 	// The prefix that is applied to names that are used when publishing messages
 	prefix string
+
+	// The tracer used to tracer the client
+	tracer trace.Tracer
 }
 
 // NewClient creates a new client that connects to the server at the given address.
@@ -48,7 +55,14 @@ func NewClient(config Config) (*Client, error) {
 	if config.Prefix != nil {
 		prefix = *config.Prefix
 	}
-	return &Client{client: client, prefix: prefix}, nil
+
+	tracer := config.Tracer
+	if tracer == nil {
+		// If no tracer is provided, use a noop tracer
+		// to avoid always checking for nil
+		tracer = trace.NewNoopTracerProvider().Tracer("noop")
+	}
+	return &Client{client: client, prefix: prefix, tracer: tracer}, nil
 }
 
 // Close closes the connection to the server.
@@ -57,7 +71,9 @@ func (c *Client) Close() {
 }
 
 // Publish sends the given data to the server.
-func (c *Client) Publish(subject string, data []types.Event) error {
+func (c *Client) Publish(ctx context.Context, subject string, data []types.Event) error {
+	ctx, span := c.tracer.Start(ctx, "client.Client.Publish")
+	defer span.End()
 	if c.prefix != "" {
 		subject = fmt.Sprintf("%s.%s", c.prefix, subject)
 	}
@@ -81,4 +97,9 @@ func (c *Client) Publish(subject string, data []types.Event) error {
 	}
 	return PartialError
 
+}
+
+// GetTracer returns the tracer used by the Client
+func (c *Client) GetTracer() trace.Tracer {
+	return c.tracer
 }

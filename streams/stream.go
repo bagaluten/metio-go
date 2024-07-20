@@ -17,8 +17,11 @@
 package streams
 
 import (
+	"context"
+
 	"github.com/bagaluten/metio-go/client"
 	"github.com/bagaluten/metio-go/types"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type Stream struct {
@@ -27,13 +30,18 @@ type Stream struct {
 
 	// The client used to interact with the stream
 	client *client.Client
+
+	// The tracer used to trace the stream
+	tracer trace.Tracer
 }
 
 func NewStream(name string, client *client.Client) *Stream {
-	return &Stream{Name: name, client: client}
+	return &Stream{Name: name, client: client, tracer: client.GetTracer()}
 }
 
 // Publish sends the given data to the server.
-func (s Stream) Publish(data []types.Event) error {
-	return s.client.Publish(s.Name, data)
+func (s Stream) Publish(ctx context.Context, events []types.Event) error {
+	ctx, span := s.tracer.Start(ctx, "streams.Stream.Publish")
+	defer span.End()
+	return s.client.Publish(ctx, s.Name, events)
 }
