@@ -24,6 +24,7 @@ import (
 	"github.com/bagaluten/metio-go/types"
 	"github.com/nats-io/nats.go"
 	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 )
 
 type Config struct {
@@ -60,7 +61,7 @@ func NewClient(config Config) (*Client, error) {
 	if tracer == nil {
 		// If no tracer is provided, use a noop tracer
 		// to avoid always checking for nil
-		tracer = trace.NewNoopTracerProvider().Tracer("noop")
+		tracer = noop.Tracer{}
 	}
 	return &Client{client: client, prefix: prefix, tracer: tracer}, nil
 }
@@ -72,7 +73,7 @@ func (c *Client) Close() {
 
 // Publish sends the given data to the server.
 func (c *Client) Publish(ctx context.Context, subject string, data []types.Event) error {
-	ctx, span := c.tracer.Start(ctx, "client.Client.Publish")
+	_, span := c.tracer.Start(ctx, "client.Client.Publish")
 	defer span.End()
 	if c.prefix != "" {
 		subject = fmt.Sprintf("%s.%s", c.prefix, subject)
