@@ -31,7 +31,7 @@ type EventType struct {
 	Version string `json:"version"`
 }
 
-func (e *EventType) MarshalJSON() ([]byte, error) {
+func (e EventType) MarshalJSON() ([]byte, error) {
 	// use String() to represent json value
 	return json.Marshal(e.String())
 }
@@ -43,7 +43,7 @@ func (e *EventType) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	eventType, err := FromString(s)
+	eventType, err := ParseEventType(s)
 	if err != nil {
 		return fmt.Errorf("failed to parse event type: %w", err)
 	}
@@ -59,7 +59,9 @@ func (e *EventType) String() string {
 	return e.Group + "/" + e.Name + "/" + e.Version
 }
 
-func FromString(s string) (EventType, error) {
+// ParseEventType parses a string into an EventType
+// The format of the string should be "group/name/version"
+func ParseEventType(s string) (EventType, error) {
 	// parse string to EventType
 	split := strings.Split(s, "/")
 	if len(split) != 3 {
@@ -73,6 +75,9 @@ func FromString(s string) (EventType, error) {
 	}, nil
 }
 
+// Payload is a map of key-value pairs that contain the event data.
+type Payload map[string]string
+
 // Event is one of the main Metio types. It represents an event that happend at a specific point in time.
 type Event struct {
 	// EventID is a unique identifier for the event
@@ -85,8 +90,42 @@ type Event struct {
 	ContextID *string `json:"contextID,omitempty"`
 
 	// Timestamp is the time at which the event was created in UTC.
-	Timestamp time.Time `json:"timestamp"`
+	Timestamp EventTimestamp `json:"timestamp"`
 
 	// Payload is a map of key-value pairs that contain the event data.
-	Payload map[string]string `json:"payload"`
+	Payload Payload `json:"payload"`
+}
+
+// EventTimestamp is a type that represents a timestamp of an event
+// It always marshalls to a string in RFC3339 format
+type EventTimestamp time.Time
+
+func (e EventTimestamp) MarshalJSON() ([]byte, error) {
+	return json.Marshal(time.Time(e).Format(time.RFC3339))
+}
+
+func (e *EventTimestamp) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+
+	t, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		return fmt.Errorf("failed to parse timestamp: %w", err)
+	}
+
+	t.UTC()
+
+	*e = EventTimestamp(t)
+	return nil
+}
+
+// TimeNow returns the current time in UTC truncted to seconds
+func TimeNow() EventTimestamp {
+	return EventTimestamp(time.Now().Truncate(time.Second).UTC())
+}
+
+func (e EventTimestamp) String() string {
+	return time.Time(e).Format(time.RFC3339)
 }
