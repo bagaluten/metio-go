@@ -28,6 +28,11 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    service:
+      nats:
+        image: nats:alpine
+        ports:
+          - "4222:4222"
     steps:
     - uses: actions/checkout@v4
 
