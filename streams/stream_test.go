@@ -14,35 +14,45 @@
  * limitations under the License.
  */
 
-package client_test
+package streams_test
 
 import (
 	"testing"
 
 	"github.com/bagaluten/metio-go/client"
+	"github.com/bagaluten/metio-go/streams"
 	"github.com/bagaluten/metio-go/types"
 	"github.com/stretchr/testify/require"
 )
 
-func TestSerialization(t *testing.T) {
-
+func TestStreams(t *testing.T) {
 	client, err := client.NewClient(client.Config{Host: "localhost:4222", Prefix: nil})
 	require.NoError(t, err)
 
 	defer client.Close()
 
-	event := types.Event{
-		EventID:   "123",
-		ContextID: nil,
-		EventType: types.MustParseEventType("group/name/version"),
-		Payload: types.Payload{
-			"key": "value",
+	stream := streams.NewStream("stream", client)
+	events := []types.Event{
+		{
+			EventID:   "123",
+			ContextID: nil,
+			EventType: types.MustParseEventType("group/name/version"),
+			Payload: types.Payload{
+				"key": "value",
+			},
+			Timestamp: types.TimeNow(),
 		},
-		Timestamp: types.TimeNow(),
+		{
+			EventID:   "124",
+			ContextID: nil,
+			EventType: types.MustParseEventType("group/name/version"),
+			Payload: types.Payload{
+				"key": "value",
+			},
+			Timestamp: types.TimeNow(),
+		},
 	}
 
-	err = client.Publish("subject", []types.Event{event})
+	err = stream.Publish(events)
 	require.NoError(t, err)
-
-	client.Close()
 }

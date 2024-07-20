@@ -75,6 +75,18 @@ func ParseEventType(s string) (EventType, error) {
 	}, nil
 }
 
+// MustParseEventType parses a string into an EventType and panics if it fails
+// ParseEventType should be used instead of this function.
+// Only use this function if you are sure that the string is a valid EventType
+// and never with user input.
+func MustParseEventType(s string) EventType {
+	eventType, err := ParseEventType(s)
+	if err != nil {
+		panic(err)
+	}
+	return eventType
+}
+
 // Payload is a map of key-value pairs that contain the event data.
 type Payload map[string]string
 
@@ -114,8 +126,6 @@ func (e *EventTimestamp) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse timestamp: %w", err)
 	}
-
-	t.UTC()
 
 	*e = EventTimestamp(t)
 	return nil

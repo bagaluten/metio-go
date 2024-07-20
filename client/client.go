@@ -16,7 +16,13 @@
 
 package client
 
-import "github.com/nats-io/nats.go"
+import (
+	"encoding/json"
+	"fmt"
+
+	"github.com/bagaluten/metio-go/types"
+	"github.com/nats-io/nats.go"
+)
 
 type Config struct {
 	// The address of the server to connect to.
@@ -43,4 +49,36 @@ func NewClient(config Config) (*Client, error) {
 		prefix = *config.Prefix
 	}
 	return &Client{client: client, prefix: prefix}, nil
+}
+
+// Close closes the connection to the server.
+func (c *Client) Close() {
+	c.client.Close()
+}
+
+// Publish sends the given data to the server.
+func (c *Client) Publish(subject string, data []types.Event) error {
+	if c.prefix != "" {
+		subject = fmt.Sprintf("%s.%s", c.prefix, subject)
+	}
+	PartialError := PartialError{}
+	for index, event := range data {
+		bytes, err := json.Marshal(event)
+		if err != nil {
+			PartialError.addError(err, index)
+			continue
+		}
+		err = c.client.Publish(subject, bytes)
+		if err != nil {
+			PartialError.addError(err, index)
+			continue
+		}
+	}
+	c.client.Flush()
+
+	if PartialError.isEmpty() {
+		return nil
+	}
+	return PartialError
+
 }
