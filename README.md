@@ -22,9 +22,12 @@ go get github.com/bagaluten/metio-go
 ## How to use it 
 
 ```golang
+func main() {
 	ctx := context.Background()
 	client, err := client.NewClient(client.Config{Host: "localhost:4222", Prefix: nil})
-	require.NoError(t, err)
+        if err != nil {
+          // do something
+        }
 
 	defer client.Close()
 
@@ -51,5 +54,5 @@ go get github.com/bagaluten/metio-go
 	}
 
 	err = stream.Publish(ctx, events)
-
+}
 ```
